@@ -116,6 +116,25 @@ def _quats_xyzw(mats: torch.Tensor) -> np.ndarray:
     return quats[:, [1, 2, 3, 0]].astype(np.float32)
 
 
+def _rest_hips_height(skeleton) -> float | None:
+    """Hip height above the lowest joint in the skeleton's neutral pose, if available."""
+    # Rotations are always emitted in the 77-joint layout, so measure the rest
+    # pose of that skeleton when a compact (30-joint) one was supplied.
+    skeleton = getattr(skeleton, "somaskel77", skeleton)
+    neutral = getattr(skeleton, "neutral_joints", None)
+    if neutral is None:
+        return None
+    try:
+        neutral = neutral.detach().to(device="cpu", dtype=torch.float64).numpy()
+        root_idx = int(getattr(skeleton, "root_idx", 0) or 0)
+        height = float(neutral[root_idx, 1] - neutral[:, 1].min())
+    except Exception:
+        return None
+    if np.isfinite(height) and height >= 0.1:
+        return height
+    return None
+
+
 def motion_to_vrma_bytes(
     local_rot_mats: torch.Tensor,
     root_positions: torch.Tensor,
@@ -172,7 +191,13 @@ def motion_to_vrma_bytes(
     if n_frames > 1 and not np.all(np.diff(times) > 0):
         raise ValueError("frame times must be strictly increasing; check the fps value.")
 
-    hips_rest_y = float(root_positions[0, 1])
+    # Rest hips height used by loaders to scale the translation track:
+    # scale = avatar rest hips height / this value. Prefer the skeleton's
+    # neutral hip height (stable across crouches/jumps); fall back to the
+    # clip's first frame and finally to 1 m.
+    hips_rest_y = _rest_hips_height(skeleton)
+    if hips_rest_y is None:
+        hips_rest_y = float(root_positions[0, 1])
     if not np.isfinite(hips_rest_y) or hips_rest_y < 0.1:
         hips_rest_y = float(root_positions[:, 1].max())
     if not np.isfinite(hips_rest_y) or hips_rest_y < 0.1:
