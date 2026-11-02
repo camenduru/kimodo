@@ -9,6 +9,7 @@ from typing import Optional
 
 from kimodo.constraints import load_constraints_lst, save_constraints_lst
 from kimodo.exports.bvh import motion_to_bvh_bytes, save_motion_bvh
+from kimodo.exports.vrma import motion_to_vrma_bytes, save_motion_vrma
 from kimodo.exports.motion_io import (
     amass_npz_to_bytes,
     g1_csv_to_bytes,
@@ -674,7 +675,7 @@ def create_gui(
                         if "g1" in model_name.lower()
                         else ["NPZ", "AMASS NPZ"]
                         if "smplx" in model_name.lower()
-                        else ["NPZ", "BVH"]
+                        else ["NPZ", "BVH", "VRMA"]
                     ),
                     initial_value="NPZ",
                 )
@@ -765,7 +766,7 @@ def create_gui(
                 name = (raw_path or "").strip()
                 if name == "":
                     return f"output{ext}"
-                known_exts = (".npz", ".bvh", ".csv")
+                known_exts = (".npz", ".bvh", ".csv", ".vrma")
                 if name.lower().endswith(known_exts):
                     return os.path.splitext(name)[0] + ext
                 if os.path.splitext(name)[1] == "":
@@ -786,6 +787,15 @@ def create_gui(
                         skeleton=session.skeleton,
                         fps=float(session.model_fps),
                         standard_tpose=bool(gui_save_bvh_standard_tpose_checkbox.value),
+                    )
+                elif fmt == "VRMA":
+                    save_path = _coerce_save_path(save_path, ext=".vrma")
+                    save_motion_vrma(
+                        save_path,
+                        motion.joints_local_rot,
+                        motion.joints_pos[:, session.skeleton.root_idx, :],
+                        skeleton=session.skeleton,
+                        fps=float(session.model_fps),
                     )
                 elif fmt == "CSV":
                     save_path = _coerce_save_path(save_path, ext=".csv")
@@ -1258,7 +1268,7 @@ def create_gui(
                         if "g1" in model_name.lower()
                         else ["NPZ", "AMASS NPZ"]
                         if "smplx" in model_name.lower()
-                        else ["NPZ", "BVH"]
+                        else ["NPZ", "BVH", "VRMA"]
                     ),
                     initial_value="NPZ",
                 )
@@ -1339,7 +1349,7 @@ def create_gui(
                     return ["NPZ", "CSV"]
                 if "smplx" in model_name_lower:
                     return ["NPZ", "AMASS NPZ"]
-                return ["NPZ", "BVH"]
+                return ["NPZ", "BVH", "VRMA"]
 
             def _update_format_dropdown(dropdown, loaded_model_name: str) -> None:
                 new_options = _get_motion_export_formats(loaded_model_name)
@@ -1383,7 +1393,7 @@ def create_gui(
                 if name == "":
                     return f"output{ext}"
 
-                known_exts = (".npz", ".bvh", ".csv", ".png", ".mp4")
+                known_exts = (".npz", ".bvh", ".csv", ".vrma", ".png", ".mp4")
                 lower = name.lower()
                 if lower.endswith(known_exts):
                     return os.path.splitext(name)[0] + ext
@@ -1576,6 +1586,15 @@ def create_gui(
                             standard_tpose=bool(gui_download_bvh_standard_tpose_checkbox.value),
                         )
                         mime = "text/plain"
+                    elif fmt == "VRMA":
+                        filename = _coerce_download_filename(raw_name, ext=".vrma")
+                        payload = motion_to_vrma_bytes(
+                            motion.joints_local_rot,
+                            motion.joints_pos[:, session.skeleton.root_idx, :],  # root positions
+                            skeleton=session.skeleton,
+                            fps=float(session.model_fps),
+                        )
+                        mime = "model/gltf-binary"
                     elif fmt == "CSV":
                         filename = _coerce_download_filename(raw_name, ext=".csv")
                         payload = _motion_to_csv_bytes(motion, session)

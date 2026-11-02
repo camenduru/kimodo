@@ -32,6 +32,7 @@ from .smplx import (
     get_amass_parameters,
     kimodo_y_up_to_amass_coord_rotation_matrix,
 )
+from .vrma import motion_to_vrma_bytes, save_motion_vrma
 
 __all__ = [
     "AMASSConverter",
@@ -57,9 +58,11 @@ __all__ = [
     "load_motion_file",
     "motion_dict_to_numpy",
     "motion_to_bvh_bytes",
+    "motion_to_vrma_bytes",
     "read_bvh_frame_time_seconds",
     "resolve_source_fps",
     "save_kimodo_npz",
     "save_kimodo_npz_at_target_fps",
     "save_motion_bvh",
+    "save_motion_vrma",
 ]
