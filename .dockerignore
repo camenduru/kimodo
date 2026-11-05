@@ -1,0 +1,46 @@
+# Keep the Docker build context small and reproducible.
+.git
+.gitignore
+.github
+
+# Local Python environments / caches
+venv
+.venv
+env
+ENV
+__pycache__
+*.py[cod]
+*.egg-info
+.pytest_cache
+.ruff_cache
+.mypy_cache
+.cache
+.freebuff
+
+# JavaScript toolchains inside vendored packages (contain symlinks that
+# escape the build context and break BuildKit's context transfer).
+**/.nodeenv
+**/node_modules
+**/.git
+**/__pycache__
+**/*.egg-info
+**/.venv
+
+# Checkpoints are baked into the image from Hugging Face at build time.
+checkpoints
+
+# Not needed inside the image
+benchmark
+docs
+assets
+outputs
+out
+debug
+nohup.out
+*.log
+
+# Docker metadata itself
+Dockerfile
+docker-compose.yaml
+.dockerignore
+

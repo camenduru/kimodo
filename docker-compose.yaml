@@ -3,26 +3,21 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-    image: kimodo:1.0
+    image: camenduru/vrmkimodo
     container_name: text-encoder
     working_dir: /workspace
     command: python -m kimodo.scripts.run_text_encoder_server
-    volumes:
-      - ./:/workspace
-      # Cache HF downloads in host "system-wide" Hugging Face cache.
-      - ${HOME}/.cache/huggingface:/workspace/.cache/huggingface
-      # Mount the host HF auth token at the standard cache location in-container.
-      - ${HOME}/.cache/huggingface/token:/workspace/.cache/huggingface/token:ro
-    # expose to your host browser
+    # Models are baked into the image at build time; no host mounts are used.
     ports:
       - "9550:9550"
     environment:
-      # Make Gradio reachable from other containers
-      # - GRADIO_SERVER_NAME=0.0.0.0
-      # - GRADIO_SERVER_PORT=9550
-      - HF_HOME=/workspace/.cache/huggingface
-      # Host user mapping (for non-root ownership + proper shell prompt)
-      - HOST_USER=${USER:-user}
+      # Models live in the image; never download at runtime.
+      - HF_HOME=/opt/hf-cache
+      - TEXT_ENCODERS_DIR=/opt/text-encoders
+      - HF_HUB_OFFLINE=1
+      - TRANSFORMERS_OFFLINE=1
+      - HF_DATASETS_OFFLINE=1
+      - LOCAL_CACHE=1
 
       # GPU
       - NVIDIA_VISIBLE_DEVICES=all
@@ -48,29 +43,25 @@ services:
               capabilities: [gpu]
 
   demo:
-    build:
-      context: .
-      dockerfile: Dockerfile
-    image: kimodo:1.0
+    # Reuses the image built by the `text-encoder` service (same Dockerfile).
+    # Keeping a single build target avoids building/downloading the image twice.
+    image: camenduru/vrmkimodo
     container_name: demo
     working_dir: /workspace
     command: python -m kimodo.demo
-    volumes:
-      - ./:/workspace
-      - ${HOME}/.cache/huggingface:/workspace/.cache/huggingface
-      - ${HOME}/.cache/huggingface/token:/workspace/.cache/huggingface/token:ro
-      # Explicit checkpoint mount (avoids surprises if the repo bind mount isn't what you expect).
-      - ./checkpoints:/workspace/checkpoints:ro
     ports:
       - "${SERVER_PORT:-7860}:${SERVER_PORT:-7860}"
     environment:
       # Point the model at the text-encoder service.
       - TEXT_ENCODER_URL=http://text-encoder:9550/
-      # Make checkpoint paths robust (Hydra config reads this).
       - SERVER_PORT=${SERVER_PORT:-7860}
-      - HF_HOME=/workspace/.cache/huggingface
-      # Host user mapping (for non-root ownership + proper shell prompt)
-      - HOST_USER=${USER:-user}
+      # Models live in the image; never download at runtime.
+      - HF_HOME=/opt/hf-cache
+      - TEXT_ENCODERS_DIR=/opt/text-encoders
+      - HF_HUB_OFFLINE=1
+      - TRANSFORMERS_OFFLINE=1
+      - HF_DATASETS_OFFLINE=1
+      - LOCAL_CACHE=1
 
       # GPU
       - NVIDIA_VISIBLE_DEVICES=all

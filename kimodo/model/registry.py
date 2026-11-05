@@ -17,7 +17,7 @@ KIMODO_REPO_IDS = [
     "nvidia/Kimodo-SOMA-RP-v1.1",
     "nvidia/Kimodo-SOMA-RP-v1.2",
     "nvidia/Kimodo-SOMA-RP-ArdyRep-v1.2",
-    "nvidia/Kimodo-SMPLX-RP-v1",
+    "camenduru/Kimodo-SMPLX-RP-v1",
     "nvidia/Kimodo-G1-RP-v1",
     "nvidia/Kimodo-SOMA-SEED-v1",
     "nvidia/Kimodo-SOMA-SEED-v1.1",
